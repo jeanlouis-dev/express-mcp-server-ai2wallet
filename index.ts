@@ -40,18 +40,9 @@ interface WeatherResponse {
 const baseURL = process.env.RESOURCE_SERVER_URL as string; // e.g. https://example.com
 const endpointPath = process.env.ENDPOINT_PATH as string; // e.g. /weather*/
 
-const paymentTokenAddress = process.env.PAYMENT_TOKEN_ADDRESS as `0x${string}`;
-const paymentTokenName = process.env.PAYMENT_TOKEN_NAME || "Axios USD";
-
 const hederaAddress = process.env.HEDERA_ADDRESS as `0x${string}`;
-const evmAddress = process.env.EVM_ADDRESS as `0x${string}`;
 
 if (!hederaAddress) {
-  console.error("Missing required environment variables");
-  process.exit(1);
-}
-
-if (!evmAddress) {
   console.error("Missing required environment variables");
   process.exit(1);
 }
@@ -138,7 +129,6 @@ const transports = {
 // Handle POST requests for client-to-server communication
 app.post('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'] as string;
-  console.log("new created session with id", sessionId);
   let transport: StreamableHTTPServerTransport;
 
   if (sessionId && transports.streamable[sessionId]) {
@@ -220,27 +210,7 @@ app.use(
             price: "$0.1",
             network: "hedera:testnet",
             payTo: hederaAddress,
-          },
-          // {
-          //   scheme: "exact",
-          //   price: "$0.001",
-          //   network: "eip155:84532",
-          //   payTo: evmAddress,
-          // },
-          // {
-          //   scheme: "exact",
-          //   network: "eip155:84532",
-          //   payTo: evmAddress,
-          //   price: {
-          //       amount: "50000", // 0.05 tokens
-          //       asset: paymentTokenAddress,
-          //       extra: {
-          //         name: paymentTokenName,
-          //         version: "1",
-          //       },
-          //   },
-          // },
-
+          }
         ],
         description: "Weather data",
         mimeType: "application/json",
