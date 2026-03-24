@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts",
+    "start": "node dist/index.js",
     "dev": "tsx watch index.ts",
     "build": "tsc",
     "format": "prettier -c .prettierrc --write \"**/*.{ts,js,cjs,json,md}\"",
