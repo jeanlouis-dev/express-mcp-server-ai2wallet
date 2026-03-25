@@ -37,6 +37,8 @@ interface WeatherResponse {
   };
 }
 
+const PORT = process.env.PORT || "4021";
+
 const baseURL = process.env.RESOURCE_SERVER_URL as string; // e.g. https://example.com
 const endpointPath = process.env.ENDPOINT_PATH as string; // e.g. /weather*/
 
@@ -323,6 +325,6 @@ function getWeatherCondition(code: number): string {
   return conditions[code] || 'Unknown';
 }
 
-app.listen(4021, () => {
-  console.log(` 🚀 Server listening at http://localhost:${4021}`);
+app.listen(PORT, () => {
+  console.log(` 🚀 Server listening at http://localhost:${PORT}`);
 });
