@@ -1,7 +1,5 @@
 import { config } from "dotenv";
 import express from "express";
-import https from 'https';
-import fs from 'fs';
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { 
@@ -17,11 +15,6 @@ import {
   x402ResourceServer, 
   z 
 } from 'ai2wallet-sdk/server';
-
-const options = {
-  key: fs.readFileSync('./certs/selfsigned.key'),
-  cert: fs.readFileSync('./certs/selfsigned.crt')
-};
 
 config();
 
@@ -126,6 +119,18 @@ function createServer() {
 }
 
 const app = express();
+app.enable('trust proxy');
+app.use(function (request, response, next) {
+  // Check if not in development mode and the request is not secure (http)
+  if (process.env.NODE_ENV !== 'development' && !request.secure) {
+    // Check if the 'x-forwarded-proto' header is not 'https'
+    if (request.headers['x-forwarded-proto'] !== 'https') {
+      console.log("redirection now!!!!!!!!")
+      return response.redirect('https://' + request.headers.host + request.url);
+    }
+  }
+  next();
+});
 
 app.use(express.json());
 app.use(
@@ -332,9 +337,6 @@ function getWeatherCondition(code: number): string {
   return conditions[code] || 'Unknown';
 }
 
-// Create the HTTPS server
-const server = https.createServer(options, app);
-
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(` 🚀 Server listening at http://localhost:${PORT}`);
 });
