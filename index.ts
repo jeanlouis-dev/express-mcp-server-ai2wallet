@@ -1,5 +1,7 @@
 import { config } from "dotenv";
 import express from "express";
+import https from 'https';
+import fs from 'fs';
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import { 
@@ -15,6 +17,11 @@ import {
   x402ResourceServer, 
   z 
 } from 'ai2wallet-sdk/server';
+
+const options = {
+  key: fs.readFileSync('./certs/selfsigned.key'),
+  cert: fs.readFileSync('./certs/selfsigned.crt')
+};
 
 config();
 
@@ -325,6 +332,9 @@ function getWeatherCondition(code: number): string {
   return conditions[code] || 'Unknown';
 }
 
-app.listen(PORT, () => {
+// Create the HTTPS server
+const server = https.createServer(options, app);
+
+server.listen(PORT, () => {
   console.log(` 🚀 Server listening at http://localhost:${PORT}`);
 });
