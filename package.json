@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "ai2wallet-sdk": "^0.0.2",
+    "ai2wallet-sdk": "^0.0.3",
     "cors": "^2.8.6",
     "dotenv": "^16.4.7",
     "express": "^4.18.2"

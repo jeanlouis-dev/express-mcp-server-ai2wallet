@@ -2,18 +2,18 @@ import { config } from "dotenv";
 import express from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
-import { 
-  ai2walletFetcher, 
-  ai2walletRPC, 
-  ExactEvmScheme, 
-  ExactHederaScheme, 
-  HTTPFacilitatorClient, 
-  isInitializeRequest, 
-  McpServer, 
-  paymentMiddleware, 
-  StreamableHTTPServerTransport, 
-  x402ResourceServer, 
-  z 
+import {
+  ai2walletFetcher,
+  ai2walletRPC,
+  ExactEvmScheme,
+  ExactSvmScheme,
+  HTTPFacilitatorClient,
+  isInitializeRequest,
+  McpServer,
+  paymentMiddleware,
+  StreamableHTTPServerTransport,
+  x402ResourceServer,
+  z
 } from 'ai2wallet-sdk/server';
 
 config();
@@ -42,16 +42,13 @@ const PORT = process.env.PORT || "4021";
 const baseURL = process.env.RESOURCE_SERVER_URL as string; // e.g. https://example.com
 const endpointPath = process.env.ENDPOINT_PATH as string; // e.g. /weather*/
 
-const paymentTokenAddress = process.env.PAYMENT_TOKEN_ADDRESS as `0x${string}`;
-const paymentTokenName = process.env.PAYMENT_TOKEN_NAME || "Axios USD";
-
-const hederaAddress = process.env.HEDERA_ADDRESS as `0x${string}`;
+//const svmAddress = process.env.SVM_ADDRESS as `0x${string}`;
 const evmAddress = process.env.EVM_ADDRESS as `0x${string}`;
 
-if (!hederaAddress) {
-  console.error("Missing required environment variables");
-  process.exit(1);
-}
+// if (!svmAddress) {
+//   console.error("Missing required environment variables");
+//   process.exit(1);
+// }
 
 if (!evmAddress) {
   console.error("Missing required environment variables");
@@ -125,7 +122,6 @@ app.use(function (request, response, next) {
   if (process.env.NODE_ENV !== 'development' && !request.secure) {
     // Check if the 'x-forwarded-proto' header is not 'https'
     if (request.headers['x-forwarded-proto'] !== 'https') {
-      console.log("redirection now!!!!!!!!")
       return response.redirect('https://' + request.headers.host + request.url);
     }
   }
@@ -215,55 +211,40 @@ app.use(
     {
       "GET /weather": {
         accepts: [
-          {
-            scheme: "exact",
-            network: "hedera:testnet",
-            payTo: hederaAddress,
-            price: {
-              amount: "50000000",
-              asset: "hbar",
-              extra: {
-                name: "HBAR",
-                decimals: 8,
-                version: "1",
-              },
-            },
-          },
-          {
-            scheme: "exact",
-            price: "$0.1",
-            network: "hedera:testnet",
-            payTo: hederaAddress,
-          },
           // {
           //   scheme: "exact",
           //   price: "$0.001",
-          //   network: "eip155:84532",
-          //   payTo: evmAddress,
+          //   network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+          //   payTo: svmAddress,
           // },
-          // {
-          //   scheme: "exact",
-          //   network: "eip155:84532",
-          //   payTo: evmAddress,
-          //   price: {
-          //       amount: "50000", // 0.05 tokens
-          //       asset: paymentTokenAddress,
-          //       extra: {
-          //         name: paymentTokenName,
-          //         version: "1",
-          //       },
-          //   },
-          // },
-
+          {
+            scheme: "exact",
+            price: "$0.1", // 0.1 tokens
+            network: "eip155:84532",
+            payTo: evmAddress,
+          },
+          {
+            scheme: "exact",
+            price: "$0.5", // 0.5 tokens
+            network: "eip155:1328",
+            payTo: evmAddress,
+          },
+          {
+            scheme: "exact",
+            price: "$0.1", // 0.1 tokens
+            network: "eip155:80002",
+            payTo: evmAddress,
+          },
         ],
         description: "Weather data",
         mimeType: "application/json",
       },
     },
     new x402ResourceServer(facilitatorClient)
-      .register("hedera:testnet", new ExactHederaScheme())
-      .register("eip155:84532", new ExactEvmScheme())
-
+      .register("eip155:84532", new ExactEvmScheme()) // Base sepolia
+      .register("eip155:1328", new ExactEvmScheme())  // Sei testnet
+      .register("eip155:80002", new ExactEvmScheme()) // Polygon amoy
+      //.register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme())
   ),
 );
 
