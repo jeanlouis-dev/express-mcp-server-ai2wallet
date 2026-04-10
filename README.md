@@ -5,8 +5,7 @@ Express.js MCP server demonstrating how to protect API endpoints with a paywall 
 ## Prerequisites
 
 - Node.js v20+ (install via [nvm](https://github.com/nvm-sh/nvm))
-- Valid EVM, SVM and STELLAR addresses for receiving payments 
-- URL of a facilitator supporting the desired payment network, see [facilitator list](https://www.x402.org/ecosystem?category=facilitators) 
+- Valid STELLAR addresses for receiving payments 
 
 ## Setup
 
@@ -19,8 +18,6 @@ cp .env-local .env
 and fill required environment variables:
 
 - `FACILITATOR_URL` - Facilitator endpoint URL
-- `EVM_ADDRESS` - Ethereum address to receive payments
-- `SVM_ADDRESS` - Solana address to receive payments
 - `STELLAR_ADDRESS` - Stellar address to receive payments
 - `RESOURCE_SERVER_URL` - Your endpoint Base URL
 - `ENDPOINT_PATH` - Your route path
@@ -83,22 +80,10 @@ app.use(
       "GET /your-endpoint": {
         accepts: [
           {
-             scheme: "exact",
-             price: "$0.001",
-             network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
-             payTo: svmAddress,
-           },
-          {
             scheme: "exact",
             price: "$0.3",
             network: "stellar:testnet",
             payTo: stellarAddress,
-          },
-          {
-            scheme: "exact",
-            price: "$0.5",
-            network: "eip155:84532",
-            payTo: evmAddress,
           }
         ],
         description: "Your endpoint description",
@@ -119,14 +104,6 @@ app.get("/your-endpoint", (req, res) => {
 ```
 
 **Network identifiers** use [CAIP-2](https://github.com/ChainAgnostic/CAIPs/blob/main/CAIPs/caip-2.md) format, for example:
-- `eip155:84532` — Base Sepolia
-- `eip155:8453` — Base Mainnet
-- `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` — Solana Devnet
-- `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` — Solana Mainnet
-- `eip155:1328` — Sei Testnet
-- `eip155:1329` — Sei Mainnet
-- `eip155:80002` — Polygon Amoy
-- `eip155:137` — Polygon Mainnet
 - `stellar:testnet` — Stellar Testnet
 - `stellar:pubnet` — Stellar Mainnet
 
@@ -135,16 +112,9 @@ app.get("/your-endpoint", (req, res) => {
 The `x402ResourceServer` uses a builder pattern to register payment schemes that declare how payments for each network should be processed: 
 
 ```typescript
-import { 
-  x402ResourceServer, 
-  ExactEvmScheme,
-  ExactSvmScheme 
-  ExactStellarScheme, 
-} from 'ai2wallet-sdk/server';
+import { x402ResourceServer, ExactStellarScheme } from 'ai2wallet-sdk/server';
 
 const resourceServer = new x402ResourceServer(facilitatorClient)
-  .register("eip155:*", new ExactEvmScheme())   // All EVM chains
-  .register("solana:*", new ExactSvmScheme())   // All SVM chains
   .register("stellar:*", new ExactStellarScheme()) // All STELLAR chains
 ```
 
@@ -162,3 +132,8 @@ const facilitatorClient = [
   new HTTPFacilitatorClient({ url: backupFacilitatorUrl }),
 ];
 ```
+
+## Generate Facilitator API Key
+
+- `Mainnet` - [https://channels.openzeppelin.com/gen](https://channels.openzeppelin.com/gen)
+- `Testnet` - [https://channels.openzeppelin.com/testnet/gen](https://channels.openzeppelin.com/testnet/gen)

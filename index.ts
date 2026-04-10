@@ -5,9 +5,7 @@ import { randomUUID } from "node:crypto";
 import {
   ai2walletFetcher,
   ai2walletRPC,
-  ExactEvmScheme,
   ExactStellarScheme,
-  ExactSvmScheme,
   HTTPFacilitatorClient,
   isInitializeRequest,
   McpServer,
@@ -43,19 +41,7 @@ const PORT = process.env.PORT || "4021";
 const baseURL = process.env.RESOURCE_SERVER_URL as string; // e.g. https://example.com
 const endpointPath = process.env.ENDPOINT_PATH as string; // e.g. /weather*/
 
-//const svmAddress = process.env.SVM_ADDRESS as `0x${string}`;
-const evmAddress = process.env.EVM_ADDRESS as `0x${string}`;
 const stellarAddress = process.env.STELLAR_ADDRESS as `0x${string}`;
-
-// if (!svmAddress) {
-//   console.error("Missing required environment variables");
-//   process.exit(1);
-// }
-
-if (!evmAddress) {
-  console.error("Missing required environment variables");
-  process.exit(1);
-}
 
 const facilitatorUrl = process.env.FACILITATOR_URL;
 if (!facilitatorUrl) {
@@ -64,10 +50,10 @@ if (!facilitatorUrl) {
 }
 const facilitatorClient = new HTTPFacilitatorClient({ 
   url: facilitatorUrl,
-  // createAuthHeaders: async () => {
-  //   const headers = { Authorization: `Bearer ${process.env.FACILITATOR_API_KEY}` };
-  //   return { verify: headers, settle: headers, supported: headers };
-  // },
+  createAuthHeaders: async () => {
+    const headers = { Authorization: `Bearer ${process.env.FACILITATOR_API_KEY}` };
+    return { verify: headers, settle: headers, supported: headers };
+  },
  });
 
 function createServer() {
@@ -219,47 +205,19 @@ app.use(
     {
       "GET /weather": {
         accepts: [
-          // {
-          //   scheme: "exact",
-          //   price: "$0.001",
-          //   network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
-          //   payTo: svmAddress,
-          // },
           {
             scheme: "exact",
-            price: "$0.3", // 0.1 tokens
+            price: "$0.3",
             network: "stellar:testnet",
             payTo: stellarAddress,
-          },
-          {
-            scheme: "exact",
-            price: "$0.1", // 0.1 tokens
-            network: "eip155:84532",
-            payTo: evmAddress,
-          },
-          {
-            scheme: "exact",
-            price: "$0.5", // 0.5 tokens
-            network: "eip155:1328",
-            payTo: evmAddress,
-          },
-          {
-            scheme: "exact",
-            price: "$0.1", // 0.1 tokens
-            network: "eip155:80002",
-            payTo: evmAddress,
-          },
+          }
         ],
         description: "Weather data",
         mimeType: "application/json",
       },
     },
     new x402ResourceServer(facilitatorClient)
-      .register("stellar:testnet", new ExactStellarScheme()) 
-      .register("eip155:84532", new ExactEvmScheme()) // Base sepolia
-      .register("eip155:1328", new ExactEvmScheme())  // Sei testnet
-      .register("eip155:80002", new ExactEvmScheme()) // Polygon amoy
-      //.register("solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", new ExactSvmScheme())
+      .register("stellar:testnet", new ExactStellarScheme())
   ),
 );
 
