@@ -5,7 +5,7 @@ Express.js MCP server demonstrating how to protect API endpoints with a paywall 
 ## Prerequisites
 
 - Node.js v20+ (install via [nvm](https://github.com/nvm-sh/nvm))
-- Valid STELLAR addresses for receiving payments 
+- Valid STELLAR address for receiving payments 
 
 ## Setup
 
@@ -18,6 +18,7 @@ cp .env-local .env
 and fill required environment variables:
 
 - `FACILITATOR_URL` - Facilitator endpoint URL
+- `FACILITATOR_API_KEY`- Your facilitator API Key (optional for self hosted facilitator)
 - `STELLAR_ADDRESS` - Stellar address to receive payments
 - `RESOURCE_SERVER_URL` - Your endpoint Base URL
 - `ENDPOINT_PATH` - Your route path
@@ -70,7 +71,7 @@ app.use('/api/trpc', ai2walletRPC());
 
 // Handle POST requests for client-to-mcpserver communication
 app.post('/mcp', async (req, res) => {
-  .........................................................
+  // your code logic here
 });
 
 // configure the payment middleware with your routes
@@ -98,7 +99,7 @@ app.use(
 app.get("/your-endpoint", (req, res) => {
  res.send({
     message: // your message reponse
-    structuredOutput // optionnal structure output
+    structuredOutput // optional structured output
   })
 });
 ```
@@ -125,7 +126,13 @@ The `HTTPFacilitatorClient` connects to a facilitator service that verifies and 
 ```typescript
 import { HTTPFacilitatorClient } from 'ai2wallet-sdk/server';
 
-const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
+const facilitatorClient = new HTTPFacilitatorClient({ 
+  url: facilitatorUrl,
+  createAuthHeaders: async () => {
+    const headers = { Authorization: `Bearer ${process.env.FACILITATOR_API_KEY}` };
+    return { verify: headers, settle: headers, supported: headers };
+  },//optional for self hosted facilitator
+ });
 // Or use multiple facilitators for redundancy
 const facilitatorClient = [
   new HTTPFacilitatorClient({ url: primaryFacilitatorUrl }),
