@@ -1,37 +1,11 @@
-# @x402/express Example Server
+# x402 Express MCP Server Example
 
-Express.js server demonstrating how to protect API endpoints with a paywall using the `@x402/express` middleware.
-
-```typescript
-import express from "express";
-import { paymentMiddleware, x402ResourceServer } from "@x402/express";
-import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { HTTPFacilitatorClient } from "@x402/core/server";
-
-const app = express();
-
-app.use(
-  paymentMiddleware(
-    {
-      "GET /weather": {
-        accepts: { scheme: "exact", price: "$0.001", network: "eip155:84532", payTo: evmAddress },
-        description: "Weather data",
-        mimeType: "application/json",
-      },
-    },
-    new x402ResourceServer(new HTTPFacilitatorClient({ url: facilitatorUrl }))
-      .register("eip155:84532", new ExactEvmScheme()),
-  ),
-);
-
-app.get("/weather", (req, res) => res.json({ weather: "sunny", temperature: 70 }));
-```
+Express.js MCP server demonstrating how to protect API endpoints with a paywall using the `ai2wallet-sdk` middleware.
 
 ## Prerequisites
 
 - Node.js v20+ (install via [nvm](https://github.com/nvm-sh/nvm))
-- pnpm v10 (install via [pnpm.io/installation](https://pnpm.io/installation))
-- Valid EVM and SVM addresses for receiving payments 
+- Valid EVM, SVM and STELLAR addresses for receiving payments 
 - URL of a facilitator supporting the desired payment network, see [facilitator list](https://www.x402.org/ecosystem?category=facilitators) 
 
 ## Setup
@@ -47,150 +21,86 @@ and fill required environment variables:
 - `FACILITATOR_URL` - Facilitator endpoint URL
 - `EVM_ADDRESS` - Ethereum address to receive payments
 - `SVM_ADDRESS` - Solana address to receive payments
+- `STELLAR_ADDRESS` - Stellar address to receive payments
+- `RESOURCE_SERVER_URL` - Your endpoint Base URL
+- `ENDPOINT_PATH` - Your route path
 
-2. Install and build all packages from the typescript examples root:
+2. Install all packages
 ```bash
-cd ../../
-pnpm install && pnpm build
-cd servers/express
+cd express-mcp-server
+npm install
 ```
 
 3. Run the server
 ```bash
-pnpm dev
+npm run dev
 ```
 
-## Testing the Server
-
-You can test the server using one of the example clients:
-
-### Using the Fetch Client
-```bash
-cd ../clients/fetch
-# Ensure .env is setup
-pnpm dev
-```
-
-### Using the Axios Client
-```bash
-cd ../clients/axios
-# Ensure .env is setup
-pnpm dev
-```
-
-These clients will demonstrate how to:
-1. Make an initial request to get payment requirements
-2. Process the payment requirements
-3. Make a second request with the payment token
-
-## Example Endpoint
-
-The server includes a single example endpoint at `/weather` that requires a payment of 0.001 USDC on Base Sepolia or Solana Devnet to access. The endpoint returns a simple weather report.
-
-## Response Format
-
-### Payment Required (402)
-
-```
-HTTP/1.1 402 Payment Required
-Content-Type: application/json; charset=utf-8
-PAYMENT-REQUIRED: <base64-encoded JSON>
-
-{}
-```
-
-The `PAYMENT-REQUIRED` header contains base64-encoded JSON with the payment requirements.
-Note: `amount` is in atomic units (e.g., 1000 = 0.001 USDC, since USDC has 6 decimals):
-
-```json
-{
-  "x402Version": 2,
-  "error": "Payment required",
-  "resource": {
-    "url": "http://localhost:4021/weather",
-    "description": "Weather data",
-    "mimeType": "application/json"
-  },
-  "accepts": [
-    {
-      "scheme": "exact",
-      "network": "eip155:84532",
-      "amount": "1000",
-      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-      "payTo": "0x1c47E9C085c2B7458F5b6C16cCBD65A65255a9f6",
-      "maxTimeoutSeconds": 300,
-      "extra": {
-        "name": "USDC",
-        "version": "2",
-        "resourceUrl": "http://localhost:4021/weather"
-      }
-    },
-    {
-      "scheme": "exact",
-      "network": "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
-      "amount": "1000",
-      "asset": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
-      "payTo": "FV6JPj6Fy12HG8SYStyHdcecXYmV1oeWERAokrh4GQ1n",
-      "maxTimeoutSeconds": 300,
-      "extra": {
-        "feePayer": "...",
-        "resourceUrl": "http://localhost:4021/weather"
-      }
-    }
-  ]
-}
-```
-
-### Successful Response
-
-```
-HTTP/1.1 200 OK
-Content-Type: application/json; charset=utf-8
-PAYMENT-RESPONSE: <base64-encoded JSON>
-
-{"report":{"weather":"sunny","temperature":70}}
-```
-
-The `PAYMENT-RESPONSE` header contains base64-encoded JSON with the settlement details:
-
-```json
-{
-  "success": true,
-  "transaction": "0x...",
-  "network": "eip155:84532",
-  "payer": "0x...",
-  "requirements": {
-    "scheme": "exact",
-    "network": "eip155:84532",
-    "amount": "1000",
-    "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-    "payTo": "0x...",
-    "maxTimeoutSeconds": 300,
-    "extra": {
-      "name": "USDC",
-      "version": "2",
-      "resourceUrl": "http://localhost:4021/weather"
-    }
-  }
-}
-```
-
-## Extending the Example
-
-To add more paid endpoints, follow this pattern:
+## Create MCP server and register tools
 
 ```typescript
-// First, configure the payment middleware with your routes
+import { ai2walletFetcher, McpServer, z } from 'ai2wallet-sdk/server';
+
+const baseURL = process.env.RESOURCE_SERVER_URL;
+const endpointPath = process.env.ENDPOINT_PATH;
+
+const server = new McpServer({
+  name: "Ai2wallet x402 MCP Server Demo",
+  version: "1.0.0",
+});
+
+server.registerTool("get-weather", {
+  title: "Get Weather",
+  description: "Get current weather for a location",
+  inputSchema: z.object({
+   location: z.string().describe('City name'),
+  })
+},
+async ({ location }) => {
+  const response:any = await ai2walletFetcher(server,baseURL,endpointPath,{ location });
+    return {
+      content: [{ type: "text", text: response.data.message }, response.uiResource]
+    };
+  }
+);
+```
+
+## Handle Endpoints
+
+```typescript
+// Realtime Bidirectional Communication
+app.use('/api/trpc', ai2walletRPC());
+
+// Handle POST requests for client-to-mcpserver communication
+app.post('/mcp', async (req, res) => {
+  .........................................................
+});
+
+// configure the payment middleware with your routes
 app.use(
   paymentMiddleware(
     {
       "GET /your-endpoint": {
-        accepts: {
-          scheme: "exact",
-          price: "$0.10",
-          network: "eip155:84532",
-          payTo: evmAddress,
-        },
+        accepts: [
+          {
+             scheme: "exact",
+             price: "$0.001",
+             network: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+             payTo: svmAddress,
+           },
+          {
+            scheme: "exact",
+            price: "$0.3",
+            network: "stellar:testnet",
+            payTo: stellarAddress,
+          },
+          {
+            scheme: "exact",
+            price: "$0.5",
+            network: "eip155:84532",
+            payTo: evmAddress,
+          }
+        ],
         description: "Your endpoint description",
         mimeType: "application/json",
       },
@@ -201,9 +111,10 @@ app.use(
 
 // Then define your routes as normal
 app.get("/your-endpoint", (req, res) => {
-  res.json({
-    // Your response data
-  });
+ res.send({
+    message: // your message reponse
+    structuredOutput // optionnal structure output
+  })
 });
 ```
 
@@ -212,15 +123,29 @@ app.get("/your-endpoint", (req, res) => {
 - `eip155:8453` — Base Mainnet
 - `solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1` — Solana Devnet
 - `solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp` — Solana Mainnet
+- `eip155:1328` — Sei Testnet
+- `eip155:1329` — Sei Mainnet
+- `eip155:80002` — Polygon Amoy
+- `eip155:137` — Polygon Mainnet
+- `stellar:testnet` — Stellar Testnet
+- `stellar:pubnet` — Stellar Mainnet
 
 ## x402ResourceServer Config
 
 The `x402ResourceServer` uses a builder pattern to register payment schemes that declare how payments for each network should be processed: 
 
 ```typescript
+import { 
+  x402ResourceServer, 
+  ExactEvmScheme,
+  ExactSvmScheme 
+  ExactStellarScheme, 
+} from 'ai2wallet-sdk/server';
+
 const resourceServer = new x402ResourceServer(facilitatorClient)
   .register("eip155:*", new ExactEvmScheme())   // All EVM chains
   .register("solana:*", new ExactSvmScheme())   // All SVM chains
+  .register("stellar:*", new ExactStellarScheme()) // All STELLAR chains
 ```
 
 ## Facilitator Config
@@ -228,20 +153,12 @@ const resourceServer = new x402ResourceServer(facilitatorClient)
 The `HTTPFacilitatorClient` connects to a facilitator service that verifies and settles payments on-chain:
 
 ```typescript
-const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
+import { HTTPFacilitatorClient } from 'ai2wallet-sdk/server';
 
+const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
 // Or use multiple facilitators for redundancy
 const facilitatorClient = [
   new HTTPFacilitatorClient({ url: primaryFacilitatorUrl }),
   new HTTPFacilitatorClient({ url: backupFacilitatorUrl }),
 ];
 ```
-
-## Next Steps
-
-See [Advanced Examples](../advanced/) for:
-- **Bazaar discovery** — make your API discoverable
-- **Dynamic pricing** — price based on request context
-- **Dynamic payTo** — route payments to different recipients  
-- **Lifecycle hooks** — custom logic on verify/settle
-- **Custom tokens** — accept payments in custom tokens

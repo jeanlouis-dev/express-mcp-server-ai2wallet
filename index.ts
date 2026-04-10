@@ -6,6 +6,7 @@ import {
   ai2walletFetcher,
   ai2walletRPC,
   ExactEvmScheme,
+  ExactStellarScheme,
   ExactSvmScheme,
   HTTPFacilitatorClient,
   isInitializeRequest,
@@ -44,6 +45,7 @@ const endpointPath = process.env.ENDPOINT_PATH as string; // e.g. /weather*/
 
 //const svmAddress = process.env.SVM_ADDRESS as `0x${string}`;
 const evmAddress = process.env.EVM_ADDRESS as `0x${string}`;
+const stellarAddress = process.env.STELLAR_ADDRESS as `0x${string}`;
 
 // if (!svmAddress) {
 //   console.error("Missing required environment variables");
@@ -60,7 +62,13 @@ if (!facilitatorUrl) {
   console.error("❌ FACILITATOR_URL environment variable is required");
   process.exit(1);
 }
-const facilitatorClient = new HTTPFacilitatorClient({ url: facilitatorUrl });
+const facilitatorClient = new HTTPFacilitatorClient({ 
+  url: facilitatorUrl,
+  // createAuthHeaders: async () => {
+  //   const headers = { Authorization: `Bearer ${process.env.FACILITATOR_API_KEY}` };
+  //   return { verify: headers, settle: headers, supported: headers };
+  // },
+ });
 
 function createServer() {
   const server = new McpServer({
@@ -137,7 +145,7 @@ app.use(
   })
 );
 
-app.use('/api/trpc', ai2walletRPC() as any);
+app.use('/api/trpc', ai2walletRPC());
 
 // Map to store transports by session ID
 // Store transports for each session type
@@ -219,6 +227,12 @@ app.use(
           // },
           {
             scheme: "exact",
+            price: "$0.3", // 0.1 tokens
+            network: "stellar:testnet",
+            payTo: stellarAddress,
+          },
+          {
+            scheme: "exact",
             price: "$0.1", // 0.1 tokens
             network: "eip155:84532",
             payTo: evmAddress,
@@ -241,6 +255,7 @@ app.use(
       },
     },
     new x402ResourceServer(facilitatorClient)
+      .register("stellar:testnet", new ExactStellarScheme()) 
       .register("eip155:84532", new ExactEvmScheme()) // Base sepolia
       .register("eip155:1328", new ExactEvmScheme())  // Sei testnet
       .register("eip155:80002", new ExactEvmScheme()) // Polygon amoy
