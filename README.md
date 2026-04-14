@@ -73,7 +73,7 @@ app.use('/api/trpc', ai2walletRPC());
 
 // Handle POST requests for client-to-mcpserver communication
 app.post('/mcp', async (req, res) => {
-  .........................................................
+  //your code logic here
 });
 
 // configure the payment middleware with your routes
@@ -113,7 +113,7 @@ app.use(
 app.get("/your-endpoint", (req, res) => {
  res.send({
     message: // your message reponse
-    structuredOutput // optionnal structure output
+    structuredOutput // optional structured output
   })
 });
 ```
